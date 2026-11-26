@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FreshCart – Daily & Monthly Grocery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@600;800&family=Hind+Siliguri:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">FreshCart<small>Daily & Monthly Grocery</small></div>
+  <input id="q" type="search" placeholder="Search rice, চাল, milk…" aria-label="Search products">
+  <button class="hbtn" id="langBtn">বাংলা</button>
+  <button class="hbtn" id="locBtn">📍 Set location</button>
+  <button class="hbtn" id="helpBtn">Help</button>
+  <button class="hbtn" id="acctBtn">Sign in</button>
+  <button class="hbtn" id="ordersBtn">Orders</button>
+  <button class="hbtn" id="theme" aria-label="Toggle dark mode">◐</button>
+  <button class="hbtn" id="cartBtn" aria-label="Open cart">Cart<b id="cnt">0</b></button>
+</header>
+
+<section class="hero">
+  <h1>Fresh every morning. Stocked for the month.</h1>
+  <p>Order today’s bread and vegetables on one list, and the month’s rice, dal and oil on another. One cart, two clear totals, no server.</p>
+  <div class="deals"><b>Deals:</b><button class="chip" data-promo="FRESH10">FRESH10 · 10% off</button><button class="chip" data-promo="MONTH150">MONTH150 · ৳150 off bazar over ৳2,000</button></div>
+</section>
+
+<div class="tiles" aria-label="Shop by category">
+  <button class="tile" style="--c:#15803d" data-go="daily|Vegetables"><span>🥦</span>Fresh Veg</button>
+  <button class="tile" style="--c:#2563eb" data-go="daily|Dairy & Eggs"><span>🥛</span>Dairy & Eggs</button>
+  <button class="tile" style="--c:#0369a1" data-go="daily|Frozen Foods"><span>🧊</span>Frozen Foods</button>
+  <button class="tile" style="--c:#c2410c" data-go="daily|Noodles & Snacks"><span>🍜</span>Noodles</button>
+  <button class="tile" style="--c:#be185d" data-go="monthly|Personal Care"><span>🪒</span>Personal Care</button>
+  <button class="tile" style="--c:#0e7490" data-go="monthly|Household"><span>🧴</span>Household</button>
+</div>
+<div class="tabs" role="tablist">
+  <button class="tab" id="tab-daily" role="tab" aria-selected="true" data-tab="daily"><h2>Daily Essentials · নিত্য</h2><span>Fresh items, delivered 7–9 AM</span></button>
+  <button class="tab" id="tab-monthly" role="tab" aria-selected="false" data-tab="monthly"><h2>Monthly Bazar · মাসিক</h2><span>Bulk packs, lower price per kg</span></button>
+  <button class="tab" id="tab-shops" role="tab" aria-selected="false" data-tab="shops"><h2>Shops · দোকান</h2><span>Find sellers near you</span></button>
+</div>
+<div class="bar" id="cats" aria-label="Categories"></div>
+<p class="note" id="note"></p>
+<main class="grid" id="grid"></main>
+
+<section id="sellerApp" aria-label="Seller dashboard"></section>
+<div class="scrim" id="scrim"></div>
+<aside id="drawer" aria-label="Your cart" aria-hidden="true">
+  <div class="ah"><h2>Your cart · আপনার ঝুড়ি</h2><button class="hbtn" id="close" style="background:var(--bg)">Close</button></div>
+  <div class="ab" id="lines"></div>
+  <div class="af">
+    <div class="pr"><input id="promo" placeholder="Promo code" aria-label="Promo code"><button class="hbtn" id="applyPromo" style="background:var(--bg)">Apply</button></div>
+    <div class="err" id="perr"></div>
+    <div id="gifts" class="badge" style="color:var(--leaf-d)"></div>
+    <div class="row"><span>Daily items</span><span id="sd">৳0</span></div>
+    <div class="row"><span>Monthly bazar</span><span id="sm">৳0</span></div>
+    <div class="row"><span>Promo savings</span><span id="sdisc">৳0</span></div>
+    <div class="row"><span>VAT (5%)</span><span id="svat">৳0</span></div>
+    <div class="row"><span>Delivery (free over ৳1,500)</span><span id="sf">৳0</span></div>
+    <div class="row t"><span>Total</span><span id="st">৳0</span></div>
+    <button class="go" id="checkout" disabled>Place order</button>
+    <button class="link" id="clear" style="margin-top:8px">Clear cart</button>
+  </div>
+</aside>
+
+<div class="modal" id="modal"><div class="scrim on" id="mscrim"></div><div class="box" role="dialog" aria-modal="true" style="position:relative;z-index:61" id="mbox"></div></div>
+<footer>FreshCart · Group F · A client-side e-commerce project built with HTML, CSS, DHTML and JavaScript · Delivering across Dhaka</footer>
+<div id="toast" role="status"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
