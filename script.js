@@ -187,7 +187,7 @@ $('#checkout').onclick=()=>{
     const o={gifts:earnedGifts(),ph:p,id,n,a,date,slot:hasD?$('#fslot').value:null,pay:$('#fpay').value,promo,T,at:new Date().toLocaleString('en-GB'),lines:P.filter(x=>cart[x.id]).map(x=>[x.bn,cart[x.id],x.p,x.sid||''])};
     o.u=me;hist.unshift(o);try{localStorage.setItem('freshcart-orders',JSON.stringify(hist.slice(0,20)))}catch(e){}
     for(const k in cart){const x=byId(k);if(x&&x.s!=null)x.s=Math.max(0,x.s-cart[k])}saveProds();
-    cart={};promo=null;save();renderGrid();renderCart();drawer(false);receipt(o,true);
+    cart={};promo=null;save();renderGrid();renderCart();drawer(false);ratingModal(o);
   };
 };
 let hist=[];try{hist=JSON.parse(localStorage.getItem('freshcart-orders')||'[]')}catch(e){}
@@ -342,7 +342,7 @@ function readPhoto(f){
 }
 function renderSeller(){
   const s=sellers[sme];if(!s)return;
-  const TB=[['profile','Shop profile'],['products','Products'],['offers','Offers & promos'],['gifts','Gifts'],['returns','Return policy'],['orders','Orders']];
+  const TB=[['profile','Shop profile'],['products','Products'],['offers','Offers & promos'],['gifts','Gifts'],['returns','Return policy'],['orders','Orders'],['ratings','Ratings']];
   const mine=prods.filter(p=>p.sid===sme),B=()=>$('#sbody'),v=id=>$('#'+id).value.trim(),er=m=>{$('#serr').textContent=m};
   $('#sellerApp').innerHTML=`<h1 style='font-size:1.8rem'>${s.pf.emoji} ${s.shop}</h1><p style='color:var(--mute);margin:4px 0 12px'>Seller dashboard · ${mine.length} products · ${s.status}</p>
   <div class='bar' style='padding:0;margin:0;max-width:none'>${TB.map(t=>`<button class='chip' aria-pressed='${t[0]===sTab}' data-st='${t[0]}'>${t[1]}</button>`).join('')}</div><div class='pn' id='sbody'></div>`;
@@ -407,6 +407,9 @@ function renderSeller(){
     <label>Remedy<select id='r2'>${['Refund','Replacement','Refund or replacement'].map(o=>`<option ${r.remedy===o?'selected':''}>${o}</option>`).join('')}</select></label></div>
     <label style='margin-top:10px'>Conditions<textarea id='r3' rows='3' placeholder='e.g. Fresh produce must be reported within 2 hours of delivery.'>${att(r.note)}</textarea></label>${E}<button class='go' id='rsave' style='max-width:220px'>Save policy</button>`;
     $('#rsave').onclick=()=>{s.ret={days:+v('r1'),remedy:v('r2'),note:san(v('r3'))};saveS();renderGrid();toast('Return policy saved')};
+  }else if(sTab==='ratings'){
+    const sr=shopRating(sme),rl=rates.filter(r=>r.shops&&r.shops[sme]);
+    B().innerHTML=`<h2>Customer ratings</h2><p style='font-size:1.3rem;margin:4px 0'>${sr.n?'★ '+sr.avg.toFixed(1)+' average from '+sr.n+' rating'+(sr.n>1?'s':''):'No ratings yet'}</p>${rl.map(r=>`<div class='ord' style='cursor:default;display:block'><b>${starRow(r.shops[sme])}</b> · ${r.at}${r.comment?'<br>'+r.comment:''}</div>`).join('')}`;
   }else{
     const od=hist.filter(o=>o.lines.some(l=>l[3]===sme));
     B().innerHTML=`<h2>Orders for your shop</h2>${od.length?od.map(o=>{const ls=o.lines.filter(l=>l[3]===sme);return `<div class='ord' style='cursor:default;display:block'><b>${o.id}</b> · ${o.at}<br>${att(o.n)} · ${att(o.ph||'')} · ${att(o.a)}<br>${ls.map(l=>l[0]+' × '+l[1]).join(', ')} · <b>${tk(ls.reduce((a,l)=>a+l[1]*l[2],0))}</b></div>`}).join(''):'<p>No orders for your shop yet.</p>'}`;
@@ -441,7 +444,7 @@ function shopCards(s){
   const all=Object.entries(sellers);
   const list=all.filter(([e,sv])=>!s||(sv.shop+sv.cat+sv.addr+(sv.pf.area||'')+(sv.pf.desc||'')+P.filter(x=>x.sid===e).map(x=>x.bn+x.en).join(' ')).toLowerCase().includes(s)).sort((a,b)=>nearShop(b[1])-nearShop(a[1]));
   if(!list.length)return `<p class='empty'>${all.length?'No shops match your search.':'No shops have joined yet. Sellers can open one from Sign in → Seller.'}</p>`;
-  return list.map(([e,sv])=>`<article class='card'><div class='emo' aria-hidden='true'>${sv.pf.emoji}</div><h3>${sv.shop}</h3><div class='en'>${sv.cat} · ${P.filter(x=>x.sid===e).length} products</div><div class='en'>📍 ${sv.pf.area||sv.addr}</div>${nearShop(sv)?`<div class='badge' style='color:var(--leaf-d)'>Delivers near you</div>`:''}<button class='add' data-shop='${att(e)}' style='margin-top:8px'>Visit shop</button></article>`).join('');
+  return list.map(([e,sv])=>`<article class='card'><div class='emo' aria-hidden='true'>${sv.pf.emoji}</div><h3>${sv.shop}</h3><div class='en'>${sv.cat} · ${P.filter(x=>x.sid===e).length} products · ${rateText(e)}</div><div class='en'>📍 ${sv.pf.area||sv.addr}</div>${nearShop(sv)?`<div class='badge' style='color:var(--leaf-d)'>Delivers near you</div>`:''}<button class='add' data-shop='${att(e)}' style='margin-top:8px'>Visit shop</button></article>`).join('');
 }
 function shopStrip(s){
   if(!s||shopView)return '';
@@ -451,7 +454,7 @@ function shopStrip(s){
 function shopHeader(){
   const sv=sellers[shopView];if(!sv)return '';
   const g=(sv.gifts||[]).map(x=>'Spend '+tk(x.min)+' → '+x.text),p=(sv.promos||[]).map(x=>x.code+' ('+(x.type==='pct'?x.val+'%':tk(x.val))+' off)'),r=sv.ret||{};
-  return `<button class='link' data-back='1' style='color:var(--leaf-d)'>← All shops</button><br><b style='font-size:1.2rem;color:var(--ink)'>${sv.pf.emoji} ${sv.shop}</b> · ${sv.cat}<br>📍 ${sv.addr}${sv.pf.hours?' · 🕒 '+sv.pf.hours:''}${sv.pf.area?' · Delivers: '+sv.pf.area:''} · ☎ ${sv.phone}<br>${sv.pf.desc?sv.pf.desc+'<br>':''}↩ ${r.days?r.days+'-day returns, '+(r.remedy||'').toLowerCase():'No returns'}${p.length?'<br>🏷 Promo codes: '+p.join(', '):''}${g.length?'<br>🎁 '+g.join(' · '):''}`;
+  return `<button class='link' data-back='1' style='color:var(--leaf-d)'>← All shops</button><br><b style='font-size:1.2rem;color:var(--ink)'>${sv.pf.emoji} ${sv.shop}</b> · ${sv.cat} · ${rateText(shopView)}<br>📍 ${sv.addr}${sv.pf.hours?' · 🕒 '+sv.pf.hours:''}${sv.pf.area?' · Delivers: '+sv.pf.area:''} · ☎ ${sv.phone}<br>${sv.pf.desc?sv.pf.desc+'<br>':''}↩ ${r.days?r.days+'-day returns, '+(r.remedy||'').toLowerCase():'No returns'}${p.length?'<br>🏷 Promo codes: '+p.join(', '):''}${g.length?'<br>🎁 '+g.join(' · '):''}`;
 }
 function openShop(e){tab='shops';shopView=e;q='';$('#q').value='';document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.tab==='shops'));renderCats();renderGrid();window.scrollTo(0,0)}
 const FAQ=[['How do I check or change an order?','Open Orders in the top bar to see your receipts. To change a daily item, contact support within one hour of ordering.'],['Which promo codes work?','Type a code in your cart. FRESH10 and MONTH150 are site-wide; a shop\'s own code only applies to that shop\'s items. One code at a time.'],['How do Daily and Monthly deliveries differ?','Daily Essentials arrive in the 7–9 AM or 5–7 PM slot you pick. Monthly Bazar arrives once, on the date you choose at checkout.'],['How do returns work?','Each shop sets its own return window. You can see it on the product card and on the shop page. If a shop does not respond, open a support ticket.'],['I forgot my password','Passwords are stored only on this device and cannot be reset. Create a new account with a different email, or contact support.'],['How do I sell on FreshCart?','Choose Sign in, then Seller, then Open a shop. You need a trade license number, your NID number, and your shop details.'],['Why is an item out of stock?','Shops set their own stock. Sold-out items cannot be added to the cart until the shop restocks.'],['How do I set my location?','Press the location button in the top bar. Type your area or use your current location. We use it to show nearby shops and fill in your address.']];
@@ -491,7 +494,7 @@ const BN={
 'Daily Essentials · নিত্য':'নিত্য প্রয়োজনীয়','Monthly Bazar · মাসিক':'মাসিক বাজার','Shops · দোকান':'দোকানসমূহ',
 'Fresh items, delivered 7–9 AM':'তাজা পণ্য, সকাল ৭–৯টায় ডেলিভারি','Bulk packs, lower price per kg':'বড় প্যাক, কেজিপ্রতি কম দাম','Find sellers near you':'কাছের বিক্রেতা খুঁজুন',
 'Order by 9 PM for next-morning delivery between 7 and 9 AM.':'পরের সকাল ৭–৯টায় ডেলিভারির জন্য রাত ৯টার মধ্যে অর্ডার করুন।','Monthly packs deliver once, on the date you choose at checkout.':'মাসিক প্যাক একবারই পৌঁছাবে, চেকআউটে বেছে নেওয়া তারিখে।','Search shops by name, area or product, or browse them all.':'নাম, এলাকা বা পণ্য দিয়ে দোকান খুঁজুন, অথবা সব দেখুন।',
-'All':'সব','Under ৳100':'৳১০০ এর নিচে','Bakery':'বেকারি','Vegetables':'সবজি','Fruits':'ফল','Fish & Meat':'মাছ ও মাংস','Grains':'চাল ও আটা','Pulses & Oil':'ডাল ও তেল','Pantry':'মুদি','Spices':'মসলা','Drinks':'পানীয়','Noodles & Snacks':'নুডলস ও স্ন্যাক্স',
+'All':'সব','Under ৳100':'৳১০০ এর নিচে','Bakery':'বেকারি','Vegetables':'সবজি','Fruits':'ফল','Fish & Meat':'মাছ ও মাংস','Grains':'চাল ও আটা','Pulses & Oil':'ডাল ও তেল','Pantry':'মুদি','Spices':'মসলা','Drinks':'পানীয়','How was your order?':'আপনার অর্ডার কেমন লেগেছে?','Rate your order':'অর্ডারটি রেট করুন','Submit rating':'রেটিং জমা দিন','Skip':'এড়িয়ে যান','Add a comment (optional)':'মন্তব্য লিখুন (ঐচ্ছিক)','No ratings yet':'এখনো কোনো রেটিং নেই','Noodles & Snacks':'নুডলস ও স্ন্যাক্স',
 'Add to cart':'ঝুড়িতে দিন','Out of stock':'স্টক নেই','Sold out':'শেষ',
 'Your cart · আপনার ঝুড়ি':'আপনার ঝুড়ি','Close':'বন্ধ করুন','Apply':'প্রয়োগ','Daily items':'নিত্য পণ্য','Monthly bazar':'মাসিক বাজার','Promo savings':'প্রোমো সাশ্রয়','VAT (5%)':'ভ্যাট (৫%)','Delivery (free over ৳1,500)':'ডেলিভারি (৳১,৫০০ এর বেশি ফ্রি)','Total':'মোট','Place order':'অর্ডার করুন','Clear cart':'ঝুড়ি খালি করুন','Daily Essentials':'নিত্য প্রয়োজনীয়','Monthly Bazar':'মাসিক বাজার','Your cart is empty. Add something from Daily or Monthly.':'আপনার ঝুড়ি খালি। নিত্য বা মাসিক থেকে কিছু যোগ করুন।',
 'Delivery details':'ডেলিভারির তথ্য','Full name':'পূর্ণ নাম','Phone (01XXXXXXXXX)':'ফোন (01XXXXXXXXX)','Address':'ঠিকানা','Daily delivery slot':'নিত্য পণ্যের ডেলিভারি সময়','7–9 AM':'সকাল ৭–৯টা','5–7 PM':'বিকাল ৫–৭টা','Payment':'পেমেন্ট','Cash on delivery':'ক্যাশ অন ডেলিভারি','bKash on delivery':'ডেলিভারিতে বিকাশ','Monthly bazar delivery date':'মাসিক বাজার ডেলিভারির তারিখ','Back to cart':'ঝুড়িতে ফিরুন',
@@ -532,6 +535,29 @@ function setLang(l,noSave){
 function langPrompt(){
   $('#mbox').innerHTML=`<h2 style='text-align:center'>Choose your language<br>ভাষা বেছে নিন</h2><div style='display:grid;gap:10px;margin-top:16px'><button class='go' data-lang='en'>English</button><button class='go' data-lang='bn' style='background:var(--turmeric);color:#3b2a00'>বাংলা</button></div>`;
   $('#modal').classList.add('on');
+}
+// ---------- Ratings (shown right after an order is placed) ----------
+let rates=[];try{rates=JSON.parse(localStorage.getItem('freshcart-ratings')||'[]')}catch(e){}
+function shopRating(e){const l=rates.filter(r=>r.shops&&r.shops[e]);return{n:l.length,avg:l.length?l.reduce((a,r)=>a+r.shops[e],0)/l.length:0}}
+function rateText(e){const r=shopRating(e);return r.n?'★ '+r.avg.toFixed(1)+' ('+r.n+')':'No ratings yet'}
+const starRow=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+function ratingModal(o){
+  const shops=[...new Set(o.lines.map(l=>l[3]).filter(s=>s&&sellers[s]))],pick={};
+  const row=(key,label)=>`<div style='margin-top:12px'><b>${label}</b><div data-key='${att(key)}'>${[1,2,3,4,5].map(n=>`<button class='star' data-sr='${n}' aria-label='${n} stars'>☆</button>`).join('')}</div></div>`;
+  $('#mbox').innerHTML=`<h2>How was your order?</h2><p style='color:var(--mute);margin:4px 0 0'>Order ${o.id} is placed. Tell us how it went.</p>${row('all','Rate your order')}${shops.map(s=>row(s,'Rate '+sellers[s].shop)).join('')}<label>Add a comment (optional)<textarea id='rc' rows='3' maxlength='200'></textarea></label><div class='err' id='err' role='alert'></div><button class='go' id='rsub'>Submit rating</button><button class='link' id='rskip' style='margin-top:8px'>Skip</button>`;
+  $('#modal').classList.add('on');
+  document.querySelectorAll('.star').forEach(b=>b.onclick=()=>{
+    const k=b.parentNode.dataset.key,n=+b.dataset.sr;pick[k]=n;
+    b.parentNode.querySelectorAll('.star').forEach((s,i)=>{s.textContent=i<n?'★':'☆'});
+  });
+  $('#rsub').onclick=()=>{
+    if(!pick.all)return $('#err').textContent='Please tap a star rating, or press Skip.';
+    const sh={};shops.forEach(s=>{if(pick[s])sh[s]=pick[s]});
+    rates.unshift({id:o.id,u:me||'',stars:pick.all,shops:sh,comment:san($('#rc').value.trim()),at:new Date().toLocaleString('en-GB')});
+    try{localStorage.setItem('freshcart-ratings',JSON.stringify(rates.slice(0,200)))}catch(e){}
+    toast('Thanks for rating!');receipt(o,true);
+  };
+  $('#rskip').onclick=()=>receipt(o,true);
 }
 $('#langBtn').onclick=()=>setLang(lang==='bn'?'en':'bn');
 paintLoc();
